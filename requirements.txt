@@ -1,4 +1,6 @@
 aiogram
 python-docx
-pypdf2
 openpyxl
+PyPDF2
+xlrd
+pyxlsb
