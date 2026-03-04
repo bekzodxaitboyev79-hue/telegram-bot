@@ -3,191 +3,219 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.client.default import DefaultBotProperties
-from aiogram.types import FSInputFile
-from aiogram.utils.keyboard import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from docx import Document
 from openpyxl import load_workbook
 from PyPDF2 import PdfReader
 
-API_TOKEN = "8674624753:AAHKQI_Cn6QenQdFNtenjDTH0USLoHT_dAA"
+API_TOKEN = "BOT_TOKEN"
+ADMIN_ID = 123456789
+CHANNEL = "@kanal_username"
 
-bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(
+    token=API_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
+
 dp = Dispatcher()
 
-mode = {}
+# ================= USERS =================
 
-# ======================
-# Transliteration
-# ======================
+def get_users():
+    try:
+        with open("users.txt","r") as f:
+            return set(int(x.strip()) for x in f.readlines())
+    except:
+        return set()
 
-def kirill_lotin(text):
+def save_user(user_id):
+    users = get_users()
+    if user_id not in users:
+        with open("users.txt","a") as f:
+            f.write(str(user_id)+"\n")
+
+# ================= TRANSLITERATION =================
+
+def kiril_lotin(text):
+
     mapping = {
-        "А":"A","а":"a","Б":"B","б":"b","В":"V","в":"v",
-        "Г":"G","г":"g","Д":"D","д":"d","Е":"E","е":"e",
-        "Ё":"Yo","ё":"yo","Ж":"J","ж":"j","З":"Z","з":"z",
-        "И":"I","и":"i","Й":"Y","й":"y","К":"K","к":"k",
-        "Л":"L","л":"l","М":"M","м":"m","Н":"N","н":"n",
-        "О":"O","о":"o","П":"P","п":"p","Р":"R","р":"r",
-        "С":"S","с":"s","Т":"T","т":"t","У":"U","у":"u",
-        "Ф":"F","ф":"f","Х":"X","х":"x","Ч":"Ch","ч":"ch",
-        "Ш":"Sh","ш":"sh","Ю":"Yu","ю":"yu","Я":"Ya","я":"ya",
-        "Қ":"Q","қ":"q","Ғ":"G‘","ғ":"g‘","Ҳ":"H","ҳ":"h",
-        "Ў":"O‘","ў":"o‘"
+        "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e",
+        "ё":"yo","ж":"j","з":"z","и":"i","й":"y","к":"k",
+        "л":"l","м":"m","н":"n","о":"o","п":"p","р":"r",
+        "с":"s","т":"t","у":"u","ф":"f","х":"x","ч":"ch",
+        "ш":"sh","ю":"yu","я":"ya"
     }
 
     for k,v in mapping.items():
         text=text.replace(k,v)
+
     return text
 
+# ================= MENU =================
 
-def lotin_kirill(text):
-    mapping = {
-        "Sh":"Ш","sh":"ш","Ch":"Ч","ch":"ч","Ya":"Я","ya":"я",
-        "Yu":"Ю","yu":"ю","Yo":"Ё","yo":"ё","O‘":"Ў","o‘":"ў",
-        "G‘":"Ғ","g‘":"ғ","Q":"Қ","q":"қ"
-    }
+menu = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="📊 Statistika",callback_data="stats")],
+        [InlineKeyboardButton(text="ℹ️ Yordam",callback_data="help")]
+    ]
+)
 
-    for k,v in mapping.items():
-        text=text.replace(k,v)
-    return text
-
-
-# ======================
-# START
-# ======================
+# ================= START =================
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔤 Kirill → Lotin", callback_data="k_l")],
-        [InlineKeyboardButton(text="🔡 Lotin → Kirill", callback_data="l_k")]
-    ])
+    user_id = message.from_user.id
+    save_user(user_id)
 
-    await message.answer("Transliteratsiya turini tanlang 👇", reply_markup=kb)
+    member = await bot.get_chat_member(CHANNEL,user_id)
 
+    if member.status=="left":
+        await message.answer(
+            f"Botdan foydalanish uchun kanalga obuna bo‘ling\n\n{CHANNEL}"
+        )
+        return
 
-# ======================
-# BUTTON HANDLER
-# ======================
+    await message.answer(
+        "Salom 👋\n\n"
+        "Kiril ↔ Lotin transliteratsiya bot.\n"
+        "Matn yoki fayl yuboring.",
+        reply_markup=menu
+    )
+
+# ================= CALLBACK =================
 
 @dp.callback_query()
 async def callback(call: types.CallbackQuery):
 
-    if call.data=="k_l":
-        mode[call.from_user.id]="k_l"
-        await call.message.answer("📂 Fayl yuboring")
+    if call.data=="stats":
 
-    if call.data=="l_k":
-        mode[call.from_user.id]="l_k"
-        await call.message.answer("📂 Fayl yuboring")
+        users = get_users()
 
-    await call.answer()
+        await call.message.answer(
+            f"👥 Foydalanuvchilar soni: {len(users)}"
+        )
 
+    elif call.data=="help":
 
-# ======================
-# FILE HANDLER
-# ======================
+        await call.message.answer(
+            "Matn yoki fayl yuboring.\n\n"
+            "Bot kiril yozuvini lotinga o‘giradi."
+        )
+
+# ================= BROADCAST =================
+
+@dp.message(lambda message: message.text.startswith("/send"))
+async def broadcast(message: types.Message):
+
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    text = message.text.replace("/send ","")
+
+    users = get_users()
+
+    for user in users:
+        try:
+            await bot.send_message(user,text)
+        except:
+            pass
+
+    await message.answer("Xabar yuborildi.")
+
+# ================= FILES =================
 
 @dp.message(lambda msg: msg.document)
 async def file_handler(message: types.Message):
 
-    user_mode = mode.get(message.from_user.id)
+    file_id = message.document.file_id
+    file_name = message.document.file_name
 
-    file = await bot.get_file(message.document.file_id)
-    path = file.file_path
+    await message.answer("Fayl qabul qilindi...")
 
-    filename = message.document.file_name
-    await bot.download_file(path, filename)
+    file = await bot.get_file(file_id)
+    await bot.download_file(file.file_path,file_name)
 
-    ext = filename.split(".")[-1]
-
-    await message.answer("⏳ Fayl qayta ishlanyapti...")
+    ext = file_name.split(".")[-1]
 
     if ext=="txt":
 
-        with open(filename,"r",encoding="utf-8",errors="ignore") as f:
+        with open(file_name,"r",encoding="utf-8",errors="ignore") as f:
             text=f.read()
 
-        if user_mode=="k_l":
-            result=kirill_lotin(text)
-        else:
-            result=lotin_kirill(text)
+        result=kiril_lotin(text)
 
-        out="result.txt"
-
-        with open(out,"w",encoding="utf-8") as f:
+        with open("result.txt","w",encoding="utf-8") as f:
             f.write(result)
 
+        await message.answer_document(types.FSInputFile("result.txt"))
 
     elif ext=="docx":
 
-        doc=Document(filename)
+        doc=Document(file_name)
 
         for p in doc.paragraphs:
+            p.text=kiril_lotin(p.text)
 
-            if user_mode=="k_l":
-                p.text=kirill_lotin(p.text)
-            else:
-                p.text=lotin_kirill(p.text)
+        doc.save("result.docx")
 
-        out="result.docx"
-        doc.save(out)
-
+        await message.answer_document(types.FSInputFile("result.docx"))
 
     elif ext=="xlsx":
 
-        wb=load_workbook(filename)
+        wb=load_workbook(file_name)
 
         for sheet in wb.worksheets:
             for row in sheet.iter_rows():
                 for cell in row:
-
                     if isinstance(cell.value,str):
+                        cell.value=kiril_lotin(cell.value)
 
-                        if user_mode=="k_l":
-                            cell.value=kirill_lotin(cell.value)
-                        else:
-                            cell.value=lotin_kirill(cell.value)
+        wb.save("result.xlsx")
 
-        out="result.xlsx"
-        wb.save(out)
-
+        await message.answer_document(types.FSInputFile("result.xlsx"))
 
     elif ext=="pdf":
 
-        reader=PdfReader(filename)
+        reader=PdfReader(file_name)
 
         text=""
 
         for page in reader.pages:
             text+=page.extract_text()
 
-        if user_mode=="k_l":
-            result=kirill_lotin(text)
-        else:
-            result=lotin_kirill(text)
+        result=kiril_lotin(text)
 
-        out="result.txt"
-
-        with open(out,"w",encoding="utf-8") as f:
+        with open("result.txt","w",encoding="utf-8") as f:
             f.write(result)
 
-    else:
-        await message.answer("❌ Bu format qo‘llab-quvvatlanmaydi")
-        return
+        await message.answer_document(types.FSInputFile("result.txt"))
 
+# ================= TEXT =================
 
-    await message.answer_document(FSInputFile(out),"✅ Tayyor")
+@dp.message()
+async def all_messages(message: types.Message):
 
+    user = message.from_user
 
-# ======================
-# RUN
-# ======================
+    save_user(user.id)
+
+    await bot.send_message(
+        ADMIN_ID,
+        f"👤 Yangi xabar\n\n"
+        f"Ism: {user.first_name}\n"
+        f"Username: @{user.username}\n"
+        f"ID: {user.id}\n"
+        f"Xabar: {message.text}"
+    )
+
+    result = kiril_lotin(message.text.lower())
+
+    await message.answer(result)
 
 async def main():
     await dp.start_polling(bot)
 
-if __name__=="__main__":
+if __name__ == "__main__":
     asyncio.run(main())
