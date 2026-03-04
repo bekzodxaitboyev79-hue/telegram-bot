@@ -11,7 +11,7 @@ from PyPDF2 import PdfReader
 import xlrd
 from pyxlsb import open_workbook
 
-API_TOKEN = "8674624753:AAHKQI_Cn6QenQdFNtenjDTH0USLoHT_dAA"
+API_TOKEN = "8697966421:AAGqq4JimRDrjP0rswZCZz92U1gYYQtROao"
 ADMIN_ID = 8027087107
 CHANNEL = "@krilchadan_lotinchaga"
 
@@ -276,3 +276,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
