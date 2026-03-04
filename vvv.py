@@ -9,9 +9,9 @@ from docx import Document
 from openpyxl import load_workbook
 from PyPDF2 import PdfReader
 
-API_TOKEN = "BOT_TOKEN"
-ADMIN_ID = 123456789
-CHANNEL = "@kanal_username"
+API_TOKEN = "8674624753:AAHKQI_Cn6QenQdFNtenjDTH0USLoHT_dAA"
+ADMIN_ID = 8027087107
+CHANNEL = "@krilchadan_lotinchaga"
 
 bot = Bot(
     token=API_TOKEN,
