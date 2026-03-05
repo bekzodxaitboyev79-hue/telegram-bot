@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.client.default import DefaultBotProperties
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
 from docx import Document
 from openpyxl import load_workbook, Workbook
@@ -17,11 +17,8 @@ API_TOKEN = "8697966421:AAGqq4JimRDrjP0rswZCZz92U1gYYQtROao"
 ADMIN_ID = 8027087107
 CHANNEL = "@krilchadan_lotinchaga"
 
-bot = Bot(
-    token=API_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
 
+bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
 
@@ -58,8 +55,8 @@ kiril_map = {
 def kiril_lotin(text):
 
     for k,v in kiril_map.items():
-        text = text.replace(k,v)
-        text = text.replace(k.upper(),v.upper())
+        text=text.replace(k,v)
+        text=text.replace(k.upper(),v.upper())
 
     return text
 
@@ -68,15 +65,14 @@ def kiril_lotin(text):
 
 def lotin_kiril(text):
 
-    text = text.lower()
+    text=text.lower()
 
-    text = text.replace("’","'")
-    text = text.replace("ʻ","'")
+    text=text.replace("’","'")
+    text=text.replace("ʻ","'")
 
-    # e qoidasi
-    text = re.sub(r'\be', 'э', text)
+    text=re.sub(r'\be','э',text)
 
-    combos = {
+    combos={
         "o'":"ў",
         "g'":"ғ",
         "sh":"ш",
@@ -88,9 +84,9 @@ def lotin_kiril(text):
     }
 
     for k,v in combos.items():
-        text = text.replace(k,v)
+        text=text.replace(k,v)
 
-    letters = {
+    letters={
         "a":"а","b":"б","d":"д","e":"е","f":"ф","g":"г",
         "h":"ҳ","i":"и","j":"ж","k":"к","l":"л","m":"м",
         "n":"н","o":"о","p":"п","q":"қ","r":"р","s":"с",
@@ -98,7 +94,7 @@ def lotin_kiril(text):
     }
 
     for k,v in letters.items():
-        text = text.replace(k,v)
+        text=text.replace(k,v)
 
     return text
 
@@ -107,21 +103,24 @@ def convert(text,mode):
 
     if mode=="kl":
         return kiril_lotin(text)
-
     else:
         return lotin_kiril(text)
 
 
-# ================= MENU =================
+# ================= USER MENU =================
 
-menu = InlineKeyboardMarkup(
-inline_keyboard=[
-[InlineKeyboardButton(text="🔤 Kiril → Lotin",callback_data="kl")],
-[InlineKeyboardButton(text="🔤 Lotin → Kiril",callback_data="lk")],
-[InlineKeyboardButton(text="📊 Statistika",callback_data="stats")]
+menu = ReplyKeyboardMarkup(
+keyboard=[
+[
+KeyboardButton(text="🔤 Kiril → Lotin"),
+KeyboardButton(text="🔤 Lotin → Kiril")
 ]
+],
+resize_keyboard=True
 )
 
+
+# ================= ADMIN MENU =================
 
 admin_menu = InlineKeyboardMarkup(
 inline_keyboard=[
@@ -132,7 +131,7 @@ inline_keyboard=[
 )
 
 
-user_mode = {}
+user_mode={}
 
 
 # ================= START =================
@@ -140,15 +139,15 @@ user_mode = {}
 @dp.message(CommandStart())
 async def start(message: types.Message):
 
-    user_id = message.from_user.id
+    user_id=message.from_user.id
 
     save_user(user_id)
 
-    member = await bot.get_chat_member(CHANNEL,user_id)
+    member=await bot.get_chat_member(CHANNEL,user_id)
 
     if member.status not in ["member","administrator","creator"]:
 
-        btn = InlineKeyboardMarkup(
+        btn=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="📢 Kanalga o'tish",
                 url=f"https://t.me/{CHANNEL.replace('@','')}")]
@@ -163,74 +162,37 @@ async def start(message: types.Message):
         return
 
     await message.answer(
-        "Assalomu alaykum 👋\n\n"
-        "Kiril ↔ Lotin transliteratsiya bot\n\n"
-        "Matn yoki fayl yuboring",
+        "👋 <b>Assalomu alaykum!</b>\n\n"
+        "🤖 Bu bot yordamida siz:\n\n"
+        "🔤 <b>Kiril → Lotin</b>\n"
+        "🔤 <b>Lotin → Kiril</b>\n\n"
+        "transliteratsiya qilishingiz mumkin.\n\n"
+        "📂 Qo‘llab-quvvatlanadigan fayllar:\n"
+        "• TXT\n"
+        "• Word (.docx)\n"
+        "• Excel (.xlsx .xls)\n"
+        "• PDF\n\n"
+        "✍️ Matn yoki fayl yuboring.",
         reply_markup=menu
     )
 
 
-# ================= CALLBACK =================
+# ================= MODE =================
 
-@dp.callback_query()
-async def callbacks(call: types.CallbackQuery):
+@dp.message(lambda m: m.text=="🔤 Kiril → Lotin")
+async def kl_mode(message: types.Message):
 
-    if call.data == "kl":
+    user_mode[message.from_user.id]="kl"
 
-        user_mode[call.from_user.id] = "kl"
-
-        await call.message.answer("Kiril matn yuboring")
-
-    elif call.data == "lk":
-
-        user_mode[call.from_user.id] = "lk"
-
-        await call.message.answer("Lotin matn yuboring")
-
-    elif call.data == "stats":
-
-        users = get_users()
-
-        await call.message.answer(
-            f"👥 Foydalanuvchilar soni: {len(users)}"
-        )
+    await message.answer("Kiril matn yuboring")
 
 
-    # ================= ADMIN =================
+@dp.message(lambda m: m.text=="🔤 Lotin → Kiril")
+async def lk_mode(message: types.Message):
 
-    elif call.data == "admin_stats":
+    user_mode[message.from_user.id]="lk"
 
-        if call.from_user.id != ADMIN_ID:
-            return
-
-        users = get_users()
-
-        await call.message.answer(
-            f"👥 Users: {len(users)}"
-        )
-
-    elif call.data == "admin_users":
-
-        if call.from_user.id != ADMIN_ID:
-            return
-
-        users = get_users()
-
-        text = "\n".join(str(u) for u in users)
-
-        with open("users_list.txt","w") as f:
-            f.write(text)
-
-        await call.message.answer_document(types.FSInputFile("users_list.txt"))
-
-    elif call.data == "admin_broadcast":
-
-        if call.from_user.id != ADMIN_ID:
-            return
-
-        await call.message.answer(
-            "Yuborish uchun:\n/send matn"
-        )
+    await message.answer("Lotin matn yuboring")
 
 
 # ================= ADMIN PANEL =================
@@ -238,7 +200,7 @@ async def callbacks(call: types.CallbackQuery):
 @dp.message(lambda m: m.text=="/admin")
 async def admin_panel(message: types.Message):
 
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id!=ADMIN_ID:
         return
 
     await message.answer(
@@ -247,17 +209,52 @@ async def admin_panel(message: types.Message):
     )
 
 
+@dp.callback_query()
+async def admin_callbacks(call: types.CallbackQuery):
+
+    if call.from_user.id!=ADMIN_ID:
+        return
+
+
+    if call.data=="admin_stats":
+
+        users=get_users()
+
+        await call.message.answer(
+            f"👥 Users: {len(users)}"
+        )
+
+
+    elif call.data=="admin_users":
+
+        users=get_users()
+
+        text="\n".join(str(u) for u in users)
+
+        with open("users_list.txt","w") as f:
+            f.write(text)
+
+        await call.message.answer_document(types.FSInputFile("users_list.txt"))
+
+
+    elif call.data=="admin_broadcast":
+
+        await call.message.answer(
+            "Yuborish uchun:\n/send matn"
+        )
+
+
 # ================= BROADCAST =================
 
 @dp.message(lambda m: m.text and m.text.startswith("/send"))
 async def broadcast(message: types.Message):
 
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id!=ADMIN_ID:
         return
 
-    text = message.text.replace("/send ","")
+    text=message.text.replace("/send ","")
 
-    users = get_users()
+    users=get_users()
 
     for user in users:
 
@@ -274,20 +271,20 @@ async def broadcast(message: types.Message):
 @dp.message(lambda msg: msg.document)
 async def file_handler(message: types.Message):
 
-    user_id = message.from_user.id
+    user_id=message.from_user.id
 
-    mode = user_mode.get(user_id,"kl")
+    mode=user_mode.get(user_id,"kl")
 
-    file_id = message.document.file_id
-    file_name = message.document.file_name
+    file_id=message.document.file_id
+    file_name=message.document.file_name
 
     await message.answer("Fayl qabul qilindi...")
 
-    file = await bot.get_file(file_id)
+    file=await bot.get_file(file_id)
 
     await bot.download_file(file.file_path,file_name)
 
-    ext = file_name.split(".")[-1].lower()
+    ext=file_name.split(".")[-1].lower()
 
 
     if ext=="txt":
@@ -383,11 +380,11 @@ async def file_handler(message: types.Message):
 @dp.message()
 async def text_handler(message: types.Message):
 
-    user_id = message.from_user.id
+    user_id=message.from_user.id
 
-    mode = user_mode.get(user_id,"kl")
+    mode=user_mode.get(user_id,"kl")
 
-    result = convert(message.text,mode)
+    result=convert(message.text,mode)
 
     await message.answer(result)
 
@@ -398,5 +395,5 @@ async def main():
     await dp.start_polling(bot)
 
 
-if __name__ == "__main__":
+if __name__=="__main__":
     asyncio.run(main())
