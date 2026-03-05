@@ -1,4 +1,6 @@
 import asyncio
+import re
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
@@ -10,12 +12,15 @@ from openpyxl import load_workbook, Workbook
 from PyPDF2 import PdfReader
 import xlrd
 
-API_TOKEN = "8697966421:AAGqq4JimRDrjP0rswZCZz92U1gYYQtROao"
-ADMIN_ID = 8027087107
-CHANNEL = "@krilchadan_lotinchaga"
+
+API_TOKEN = "BOT_TOKEN"
+ADMIN_ID = 123456789
+CHANNEL = "@kanal_username"
+
 
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
+
 
 # ================= USERS =================
 
@@ -26,13 +31,15 @@ def get_users():
     except:
         return set()
 
+
 def save_user(user_id):
     users = get_users()
     if user_id not in users:
         with open("users.txt","a") as f:
             f.write(str(user_id)+"\n")
 
-# ================= TRANSLITERATION =================
+
+# ================= KIRIL → LOTIN =================
 
 kiril = {
 "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e",
@@ -40,28 +47,63 @@ kiril = {
 "қ":"q","л":"l","м":"m","н":"n","о":"o","п":"p",
 "р":"r","с":"s","т":"t","у":"u","ф":"f","х":"x",
 "ҳ":"h","ч":"ch","ш":"sh","ю":"yu","я":"ya",
-"ғ":"g'","ў":"o'","и":"i","э":"e"
+"ғ":"g'","ў":"o'","ы":"i","э":"e"
 }
 
-latin = {v:k for k,v in kiril.items()}
-
 def kiril_lotin(text):
+
     for k,v in kiril.items():
         text=text.replace(k,v)
         text=text.replace(k.upper(),v.upper())
+
     return text
+
+
+# ================= LOTIN → KIRIL =================
 
 def lotin_kiril(text):
-    for k,v in latin.items():
-        text=text.replace(k,v)
-        text=text.replace(k.upper(),v.upper())
+
+    text = text.lower()
+
+    # kombinatsiyalar
+    combos = {
+        "o'":"ў",
+        "g'":"ғ",
+        "sh":"ш",
+        "ch":"ч",
+        "yo":"ё",
+        "yu":"ю",
+        "ya":"я"
+    }
+
+    for k,v in combos.items():
+        text = text.replace(k,v)
+
+    # harflar
+    letters = {
+        "a":"а","b":"б","d":"д","e":"е","f":"ф","g":"г",
+        "h":"ҳ","i":"и","j":"ж","k":"к","l":"л","m":"м",
+        "n":"н","o":"о","p":"п","q":"қ","r":"р","s":"с",
+        "t":"т","u":"у","v":"в","x":"х","y":"й","z":"з"
+    }
+
+    for k,v in letters.items():
+        text = text.replace(k,v)
+
+    # e qoidasi
+    text = re.sub(r'\be', 'э', text)
+
     return text
 
+
 def convert(text,mode):
+
     if mode=="kl":
         return kiril_lotin(text)
+
     else:
         return lotin_kiril(text)
+
 
 # ================= MENU =================
 
@@ -73,6 +115,7 @@ inline_keyboard=[
 ]
 )
 
+
 admin_menu = InlineKeyboardMarkup(
 inline_keyboard=[
 [InlineKeyboardButton(text="📊 Statistika",callback_data="admin_stats")],
@@ -81,7 +124,9 @@ inline_keyboard=[
 ]
 )
 
+
 user_mode = {}
+
 
 # ================= START =================
 
@@ -109,10 +154,11 @@ async def start(message: types.Message):
 
     await message.answer(
         "Assalomu alaykum 👋\n\n"
-        "Transliteratsiya bot\n"
+        "Kiril ↔ Lotin transliteratsiya bot\n\n"
         "Matn yoki fayl yuboring",
         reply_markup=menu
     )
+
 
 # ================= CALLBACK =================
 
@@ -135,6 +181,7 @@ async def callback(call: types.CallbackQuery):
             f"👥 Foydalanuvchilar soni: {len(users)}"
         )
 
+
 # ================= ADMIN PANEL =================
 
 @dp.message(lambda message: message.text=="/admin")
@@ -147,6 +194,7 @@ async def admin_panel(message: types.Message):
         "⚙️ Admin panel",
         reply_markup=admin_menu
     )
+
 
 @dp.callback_query(lambda c: c.data.startswith("admin"))
 async def admin_callbacks(call: types.CallbackQuery):
@@ -176,8 +224,9 @@ async def admin_callbacks(call: types.CallbackQuery):
     elif call.data=="admin_broadcast":
 
         await call.message.answer(
-            "Xabar yuborish uchun:\n\n/send matn"
+            "Xabar yuborish uchun:\n/send matn"
         )
+
 
 # ================= BROADCAST =================
 
@@ -199,6 +248,7 @@ async def broadcast(message: types.Message):
 
     await message.answer("Xabar yuborildi.")
 
+
 # ================= FILE =================
 
 @dp.message(lambda msg: msg.document)
@@ -217,6 +267,7 @@ async def file_handler(message: types.Message):
 
     ext = file_name.split(".")[-1].lower()
 
+
 # TXT
 
     if ext=="txt":
@@ -231,6 +282,7 @@ async def file_handler(message: types.Message):
 
         await message.answer_document(types.FSInputFile("result.txt"))
 
+
 # WORD
 
     elif ext=="docx":
@@ -243,6 +295,7 @@ async def file_handler(message: types.Message):
         doc.save("result.docx")
 
         await message.answer_document(types.FSInputFile("result.docx"))
+
 
 # EXCEL
 
@@ -259,6 +312,7 @@ async def file_handler(message: types.Message):
         wb.save("result.xlsx")
 
         await message.answer_document(types.FSInputFile("result.xlsx"))
+
 
 # XLS
 
@@ -293,6 +347,7 @@ async def file_handler(message: types.Message):
 
         await message.answer_document(types.FSInputFile("result.xlsx"))
 
+
 # PDF
 
     elif ext=="pdf":
@@ -311,6 +366,7 @@ async def file_handler(message: types.Message):
 
         await message.answer_document(types.FSInputFile("result.txt"))
 
+
 # ================= TEXT =================
 
 @dp.message()
@@ -323,11 +379,12 @@ async def text_handler(message: types.Message):
 
     await message.answer(result)
 
+
 # ================= RUN =================
 
 async def main():
     await dp.start_polling(bot)
 
+
 if __name__ == "__main__":
     asyncio.run(main())
-
