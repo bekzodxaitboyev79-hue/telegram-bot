@@ -13,9 +13,9 @@ from PyPDF2 import PdfReader
 import xlrd
 
 
-API_TOKEN = "BOT_TOKEN"
-ADMIN_ID = 123456789
-CHANNEL = "@kanal_username"
+API_TOKEN = "8697966421:AAGqq4JimRDrjP0rswZCZz92U1gYYQtROao"
+ADMIN_ID = 8027087107
+CHANNEL = "@krilchadan_lotinchaga"
 
 
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
