@@ -17,8 +17,10 @@ API_TOKEN = "8697966421:AAGqq4JimRDrjP0rswZCZz92U1gYYQtROao"
 ADMIN_ID = 8027087107
 CHANNEL = "@krilchadan_lotinchaga"
 
-bot = Bot(token=API_TOKEN,
-default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(
+    token=API_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
 
 dp = Dispatcher()
 
@@ -171,21 +173,21 @@ async def start(message: types.Message):
 # ================= CALLBACK =================
 
 @dp.callback_query()
-async def callback(call: types.CallbackQuery):
+async def callbacks(call: types.CallbackQuery):
 
-    if call.data=="kl":
+    if call.data == "kl":
 
-        user_mode[call.from_user.id]="kl"
+        user_mode[call.from_user.id] = "kl"
 
         await call.message.answer("Kiril matn yuboring")
 
-    elif call.data=="lk":
+    elif call.data == "lk":
 
-        user_mode[call.from_user.id]="lk"
+        user_mode[call.from_user.id] = "lk"
 
         await call.message.answer("Lotin matn yuboring")
 
-    elif call.data=="stats":
+    elif call.data == "stats":
 
         users = get_users()
 
@@ -194,7 +196,44 @@ async def callback(call: types.CallbackQuery):
         )
 
 
-# ================= ADMIN =================
+    # ================= ADMIN =================
+
+    elif call.data == "admin_stats":
+
+        if call.from_user.id != ADMIN_ID:
+            return
+
+        users = get_users()
+
+        await call.message.answer(
+            f"👥 Users: {len(users)}"
+        )
+
+    elif call.data == "admin_users":
+
+        if call.from_user.id != ADMIN_ID:
+            return
+
+        users = get_users()
+
+        text = "\n".join(str(u) for u in users)
+
+        with open("users_list.txt","w") as f:
+            f.write(text)
+
+        await call.message.answer_document(types.FSInputFile("users_list.txt"))
+
+    elif call.data == "admin_broadcast":
+
+        if call.from_user.id != ADMIN_ID:
+            return
+
+        await call.message.answer(
+            "Yuborish uchun:\n/send matn"
+        )
+
+
+# ================= ADMIN PANEL =================
 
 @dp.message(lambda m: m.text=="/admin")
 async def admin_panel(message: types.Message):
@@ -206,38 +245,6 @@ async def admin_panel(message: types.Message):
         "⚙️ Admin panel",
         reply_markup=admin_menu
     )
-
-
-@dp.callback_query(lambda c: c.data.startswith("admin"))
-async def admin_callbacks(call: types.CallbackQuery):
-
-    if call.from_user.id != ADMIN_ID:
-        return
-
-    if call.data=="admin_stats":
-
-        users = get_users()
-
-        await call.message.answer(
-            f"👥 Users: {len(users)}"
-        )
-
-    elif call.data=="admin_users":
-
-        users = get_users()
-
-        text="\n".join(str(u) for u in users)
-
-        with open("users_list.txt","w") as f:
-            f.write(text)
-
-        await call.message.answer_document(types.FSInputFile("users_list.txt"))
-
-    elif call.data=="admin_broadcast":
-
-        await call.message.answer(
-            "Yuborish uchun:\n/send matn"
-        )
 
 
 # ================= BROADCAST =================
@@ -283,8 +290,6 @@ async def file_handler(message: types.Message):
     ext = file_name.split(".")[-1].lower()
 
 
-# TXT
-
     if ext=="txt":
 
         text=open(file_name,"r",encoding="utf-8",errors="ignore").read()
@@ -295,8 +300,6 @@ async def file_handler(message: types.Message):
 
         await message.answer_document(types.FSInputFile("result.txt"))
 
-
-# WORD
 
     elif ext=="docx":
 
@@ -309,8 +312,6 @@ async def file_handler(message: types.Message):
 
         await message.answer_document(types.FSInputFile("result.docx"))
 
-
-# EXCEL
 
     elif ext in ["xlsx","xlsm"]:
 
@@ -326,8 +327,6 @@ async def file_handler(message: types.Message):
 
         await message.answer_document(types.FSInputFile("result.xlsx"))
 
-
-# XLS
 
     elif ext=="xls":
 
@@ -362,8 +361,6 @@ async def file_handler(message: types.Message):
 
         await message.answer_document(types.FSInputFile("result.xlsx"))
 
-
-# PDF
 
     elif ext=="pdf":
 
